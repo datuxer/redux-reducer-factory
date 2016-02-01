@@ -1,6 +1,4 @@
 /**
- * @author Ian McLaughlin <mclauia@gmail.com>
- *
  * @description
  *      Creates a createReducer function enhanced by beforeReduceEnhancers and afterReduceEnhancers
  *      Think of them like extra reducer functions that you can tack onto the beginning or end of each reducer
@@ -8,7 +6,7 @@
  *      Also validates that your enhancers have been defined correctly
  *
  * @param {Object} initialState the initial state of this state domain
- * @param {Object} handlerMap   an object where keys are action types and
+ * @param {Object} actionHandlers   an object where keys are action types and
  *                                  values are reducer functions of the form (state,action) => newState
  *
  * @return {Function} a createReducer function
@@ -26,18 +24,18 @@ export default function createReducerFactory(beforeReduceEnhancers = [], afterRe
    *      Creates a reducer function that will map action types to handler functions.
    *      ActionHandlers should be a plain object where the keys are action types and the values are reducer functions
    *
-   *      Also validates that your handlerMap has been defined correctly
+   *      Also validates that your actionHandlers has been defined correctly
    *
    * @param {Object} initialState the initial state of this state domain
-   * @param {Object} handlerMap   an object where keys are action types and
+   * @param {Object} actionHandlers   an object where keys are action types and
    *                                  values are reducer functions of the form (state,action) => newState
    *
    * @return {Function} a reducer function
    */
-  return function createReducer(initialState, handlerMap) {
+  return function createReducer(initialState, actionHandlers) {
     if (__DEV__) {
       /* eslint no-param-reassign: 0 */
-      handlerMap = validateHandlerMap(handlerMap);
+      actionHandlers = validateActionHandlers(actionHandlers);
     }
 
     /**
@@ -54,7 +52,7 @@ export default function createReducerFactory(beforeReduceEnhancers = [], afterRe
 
       const actionType = action.type;
 
-      const handler = handlerMap[actionType];
+      const handler = actionHandlers[actionType];
 
       const enhancedPreviousState = beforeReduceEnhancers
         .reduce(
@@ -78,6 +76,7 @@ export default function createReducerFactory(beforeReduceEnhancers = [], afterRe
   }
 }
 
+// in case you just need a plain createReducer, just offer a configure-less export
 export const createReducer = createReducerFactory();
 
 function warnBadEnhancerArray(location, input) {
@@ -86,7 +85,6 @@ function warnBadEnhancerArray(location, input) {
     + `instead found ${typeof input}: `,
     input
   );
-  console.trace();
 }
 
 function warnBadEnhancer(location, enhancer) {
@@ -95,7 +93,6 @@ function warnBadEnhancer(location, enhancer) {
     + `instead found ${typeof enhancer}: `,
     enhancer
   );
-  console.trace();
 }
 
 // enforces enhancer arrays. enforces enhancer functions, removes non-functions with console errors
@@ -104,12 +101,10 @@ function validateEnhancers(location, enhancers) {
   if (!Array.isArray(enhancers)) {
     warnBadEnhancerArray(location, enhancers);
   } else {
-    enhancers.forEach(enhancer => {
-      if (!enhancer instanceof Function) {
-        warnBadEnhancer(location, enhancer);
-      } else {
-        validatedEnhancers.push(enhancer);
-      }
+    validatedEnhancers = enhancers.filter(enhancer => {
+      const isFunc = enhancer instanceof Function;
+      if (!isFunc) warnBadEnhancer(location, enhancer);
+      return isFunc;
     })
   }
 
@@ -117,23 +112,22 @@ function validateEnhancers(location, enhancers) {
 }
 
 // enforces handler functions, removes non-functions with console errors
-function validateHandlerMap(handlerMap) {
-  const validatedHandlerMap = {};
+function validateActionHandlers(actionHandlers) {
+  const validatedActionHandlers = {};
   let actionType;
-  for (actionType in handlerMap) {
-    if (handlerMap.hasOwnProperty(actionType)) {
-      const handler = handlerMap[actionType];
+  for (actionType in actionHandlers) {
+    if (actionHandlers.hasOwnProperty(actionType)) {
+      const handler = actionHandlers[actionType];
       if (!(handler instanceof Function)) {
         console.error(
           `createReducer: Expected reducer function for ${actionType} in handler object, `
           + `instead found ${typeof handler}: `,
           handler
         );
-        console.trace();
       } else {
-        validatedHandlerMap[actionType] = handler;
+        validatedActionHandlers[actionType] = handler;
       }
     }
   }
-  return validatedHandlerMap;
+  return validatedActionHandlers;
 }
