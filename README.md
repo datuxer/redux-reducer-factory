@@ -2,17 +2,15 @@
 # redux-reducer-factory
 > A configurable createReducer factory for adding custom reducer enhancers.
 
-A configurable createReducer factory (i.e. it is a factory for making a createReducer function) that allows projects to insert utility functions (enhancers) before and after individual reducers are invoked, providing a clear reducer API.
+A configurable createReducer factory (i.e. it is a factory for making a createReducer function) that essentially allows projects to insert extra generic reducers (enhancers) before and after individual domain reducers are invoked, without muddying those individual domains.
 
 Meant to be used underneath redux's `combineReducers`; use `combineReducers` for reducer composition, and `createReducer` for your action-handling reducers.
 
-Multiple configurations of `createReducerFactory` allows different reducers to use only the utilities or transformers that apply to them, without significant noise in each individual reducer.
+Multiple configurations of `createReducerFactory` allows different reducers to use only the enhancers that apply to them.
 
-NOTE: Obviously, reducers must still be pure, and reducer enhancers should have no side effects.
+NOTE: Obviously, reducers must still be pure, and reducer enhancers should have no side effects; they're just common, chained reducers.
 
-Enhancers are for logic that should happen within each reducer, but can't happen at the store level, because the store is only responsible for maintaining the top-level state object and invoking the root reducer. Specifically this was written to fulfill two needs: firstly to meld partially hydrated object state (from local storage) with any missing properties from initialState, and secondly to provide helpful runtime logging and validation for myself and other developers new to working with redux & pure reducers. Rather than lump these two totally different tasks together into one reducerFactory, it made sense to break it apart into a configurable module.
-
-Use enhancers to perform transformations (not mutations!) or validations on state before and after handing them to the reducer.
+This is for logic that should happen within each reducer's domain, and not at the store level. Specifically this was written to fulfill two needs: firstly to find a place to meld a partially hydrated state tree (e.g. from a local storage storeEnhancer) with any missing properties from initialState (which belongs to the reducer domain), and secondly to provide helpful runtime logging and validation for myself and other developers new to working with redux & pure reducers. Rather than lump these two totally different tasks together into one reducerFactory, it made sense to break it apart into a configurable module.
 
 ## installation
 
@@ -23,9 +21,9 @@ Use enhancers to perform transformations (not mutations!) or validations on stat
 ## usage
 
 ### createReducerFactory(beforeReduceEnhancers, afterReduceEnhancers)
-`=> Function` Returns a reducer creator function with enhancements.
+`=> Function` Returns a createReducer function with enhancements.
 
-Expects `beforeReduceEnhancers` and `afterReduceEnhancers` to be arrays of enhancer functions with the signature below. Enhancers are invoked in array order before and after the reducer invocation with the following parameters:
+Expects `beforeReduceEnhancers` and `afterReduceEnhancers` to be arrays of reducer/enhancer functions with the signature below. Enhancers are invoked in array order before and after the reducer invocation with the following parameters:
 #### beforeEnhancer(handler, initialState, previousState, chainedEnhancedState)
 `=> enhancedState` Returns enhanced state, which will be passed as `enhancedPreviousState` to the next enhancer in the chain.
 
